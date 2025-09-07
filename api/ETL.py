@@ -21,6 +21,13 @@ url = ('https://newsdata.io/api/1/latest?'
        'country=ke&'
        'language=en&')
 
+
+RSS_feeds = [
+   "https://www.standardmedia.co.ke/rss/kenya.php",
+   "https://www.kenyanews.go.ke/feed/",
+   
+]
+
 def get_API_articles():
 
   """

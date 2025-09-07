@@ -1,0 +1,39 @@
+name: Insightify
+
+services:
+  insightify-app:
+    build:
+      context: ./api
+    depends_on:
+      - insightify-database
+    ports:
+      - 8000:5000
+
+    develop:
+      watch:
+        - path: ./api
+          action: rebuild
+
+  redis:
+    image: "redis:alpine"
+
+  insightify-database:
+    image: ankane/pgvector
+
+    restart: unless-stopped
+
+    environment: 
+      - POSTGRES_USER=insightify
+      - POSTGRES_PASSWORD=password # to change 
+      - POSTGRES_DB=insightify_db
+
+    volumes: 
+      - pgdata:/var/lib/postgresql/data
+      - ./db/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+
+    ports:
+      - 5432:5432
+
+volumes:
+  pgdata:
+  #database:
