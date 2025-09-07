@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insightify - Crisis Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #fafbfc;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .refresh-btn {
+            background: none;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Mood Overview Card */
+        .mood-card {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 32px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .mood-title {
+            font-size: 18px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .mood-status {
+            font-size: 32px;
+            font-weight: 700;
+            padding: 16px 24px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: inline-block;
+            min-width: 200px;
+        }
+
+        .mood-calm { background: #dcfce7; color: #16a34a; }
+        .mood-caution { background: #fef3c7; color: #d97706; }
+        .mood-critical { background: #fee2e2; color: #dc2626; }
+
+        .mood-description {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        /* Recent Snippets Section */
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+
+        .snippets-container {
+            display: grid;
+            gap: 16px;
+        }
+
+        .snippet-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .snippet-card:hover {
+            border-color: #d1d5db;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .snippet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .snippet-source {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4f46e5;
+        }
+
+        .snippet-time {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        .snippet-content {
+            color: #374151;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .snippet-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #f3f4f6;
+            color: #6b7280;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .tag-negative { background: #fee2e2; color: #dc2626; }
+        .tag-urgent { background: #fef3c7; color: #d97706; }
+        .tag-translated { background: #dbeafe; color: #2563eb; }
+
+        /* Action Buttons */
+        .actions {
+            margin-top: 32px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #4338ca;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #f9fafb;
+        }
+
+        /* Loading State */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #4f46e5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 48px;
+            padding: 24px;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 14px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .header {
+                padding: 12px 16px;
+            }
+            
+            .mood-card {
+                padding: 24px 16px;
+            }
+            
+            .mood-status {
+                font-size: 24px;
+                min-width: 160px;
+            }
+            
+            .actions {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🔍 Insightify</div>
+        <div class="header-info">
+            <span id="lastUpdated">Last updated: 2 minutes ago</span>
+            <button class="refresh-btn" id="refreshBtn">
+                <span id="refreshIcon">↻</span> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Mood Overview Card -->
+        <div class="mood-card">
+            <div class="mood-title">Global Crisis Sentiment</div>
+            <div class="mood-status mood-caution" id="moodStatus">ELEVATED</div>
+            <div class="mood-description" id="moodDescription">
+                Monitoring 847 sources • Detected moderate concern levels in Asia-Pacific region
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="activeAlerts">23</div>
+                <div class="stat-label">Active Alerts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="sourcesMonitored">847</div>
+                <div class="stat-label">Sources Monitored</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="processedToday">12.4K</div>
+                <div class="stat-label">Posts Processed Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="languages">23</div>
+                <div class="stat-label">Languages Detected</div>
+            </div>
+        </div>
+
+        <!-- Recent Snippets Section -->
+        <h2 class="section-title">Recent Crisis Indicators</h2>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            Processing real-time data...
+        </div>
+
+        <div class="snippets-container" id="snippetsContainer">
+            <!-- Snippets will be dynamically loaded here -->
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions">
+            <button class="btn btn-primary" onclick="showFullReport()">View Full Report</button>
+            <button class="btn btn-secondary" onclick="provideFeedback()">Send Feedback</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Insightify Crisis Monitor • Data sources: Twitter API, News APIs, Emergency Feeds • 
+        <a href="#" style="color: #4f46e5;">Privacy</a> • 
+        <a href="#" style="color: #4f46e5;">Terms</a> • 
+        <a href="#" style="color: #4f46e5;">About</a></p>
+    </div>
+
+    <script>
+        class InsightifyDashboard {
+            constructor() {
+                this.lastUpdateTime = new Date();
+                this.refreshInterval = null;
+                this.initialize();
+            }
+
+            initialize() {
+                this.loadInitialData();
+                this.startAutoRefresh();
+                this.attachEventListeners();
+            }
+
+            attachEventListeners() {
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    this.refreshData();
+                });
+            }
+
+            loadInitialData() {
+                // Simulate loading real data
+                this.updateSnippets();
+                this.updateLastRefreshTime();
+            }
+
+            startAutoRefresh() {
+                this.refreshInterval = setInterval(() => {
+                    this.refreshData();
+                }, 60000); // Refresh every minute
+            }
+
+            async refreshData() {
+                const refreshBtn = document.getElementById('refreshBtn');
+                const refreshIcon = document.getElementById('refreshIcon');
+                const loading = document.getElementById('loading');
+                
+                // Show loading state
+                refreshIcon.style.animation = 'spin 1s linear infinite';
+                loading.style.display = 'block';
+                
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Update data
+                this.updateStats();
+                this.updateMoodStatus();
+                this.updateSnippets();
+                this.updateLastRefreshTime();
+                
+                // Hide loading state
+                refreshIcon.style.animation = 'none';
+                loading.style.display = 'none';
+            }
+
+            updateStats() {
+                // Simulate real-time stat updates
+                document.getElementById('activeAlerts').textContent = Math.floor(Math.random() * 30) + 15;
+                document.getElementById('sourcesMonitored').textContent = Math.floor(Math.random() * 100) + 800;
+                document.getElementById('processedToday').textContent = (Math.random() * 5 + 10).toFixed(1) + 'K';
+                document.getElementById('languages').textContent = Math.floor(Math.random() * 10) + 20;
+            }
+
+            updateMoodStatus() {
+                const moods = [
+                    { status: 'CALM', class: 'mood-calm', description: 'All systems normal • No significant alerts detected' },
+                    { status: 'ELEVATED', class: 'mood-caution', description: 'Monitoring moderate concern levels in Asia-Pacific region' },
+                    { status: 'CRITICAL', class: 'mood-critical', description: 'High alert • Multiple crisis indicators detected globally' }
+                ];
+                
+                const selectedMood = moods[Math.floor(Math.random() * moods.length)];
+                const statusElement = document.getElementById('moodStatus');
+                const descElement = document.getElementById('moodDescription');
+                
+                statusElement.className = `mood-status ${selectedMood.class}`;
+                statusElement.textContent = selectedMood.status;
+                descElement.textContent = selectedMood.description;
+            }
+
+            updateSnippets() {
+                const mockSnippets = [
+                    {
+                        source: 'Twitter @EmergencyAsia',
+                        time: '3 minutes ago',
+                        content: 'Earthquake magnitude 6.2 reported near Jakarta. Local authorities coordinating emergency response. No tsunami warning issued at this time.',
+                        tags: ['urgent', 'earthquake', 'translated'],
+                        priority: 'high'
+                    },
+                    {
+                        source: 'Reuters News API',
+                        time: '7 minutes ago',
+                        content: 'Flooding continues in Northern Europe as rivers reach critical levels. 12,000 people evacuated from affected areas.',
+                        tags: ['flood', 'evacuation'],
+                        priority: 'medium'
+                    },
+                    {
+                        source: 'Twitter @WeatherAlert',
+                        time: '12 minutes ago',
+                        content: 'Hurricane tracking models show potential landfall in 72 hours. Coastal areas advised to monitor conditions closely.',
+                        tags: ['hurricane', 'forecast'],
+                        priority: 'medium'
+                    },
+                    {
+                        source: 'Local News Aggregator',
+                        time: '18 minutes ago',
+                        content: 'Wildfire containment efforts successful in California region. Air quality improving in surrounding communities.',
+                        tags: ['wildfire', 'contained'],
+                        priority: 'low'
+                    },
+                    {
+                        source: 'Twitter @CrisisResponse',
+                        time: '25 minutes ago',
+                        content: 'Humanitarian aid distribution scheduled for affected regions. International cooperation confirmed for logistics support.',
+                        tags: ['humanitarian', 'translated'],
+                        priority: 'low'
+                    }
+                ];
+
+                const container = document.getElementById('snippetsContainer');
+                container.innerHTML = '';
+
+                mockSnippets.forEach(snippet => {
+                    const snippetCard = this.createSnippetCard(snippet);
+                    container.appendChild(snippetCard);
+                });
+            }
+
+            createSnippetCard(snippet) {
+                const card = document.createElement('div');
+                card.className = 'snippet-card';
+                
+                const tagsHtml = snippet.tags.map(tag => {
+                    const tagClass = tag === 'urgent' ? 'tag-urgent' : 
+                                   tag === 'negative' ? 'tag-negative' : 
+                                   tag === 'translated' ? 'tag-translated' : '';
+                    return `<span class="tag ${tagClass}">${tag}</span>`;
+                }).join('');
+
+                card.innerHTML = `
+                    <div class="snippet-header">
+                        <div class="snippet-source">${snippet.source}</div>
+                        <div class="snippet-time">${snippet.time}</div>
+                    </div>
+                    <div class="snippet-content">${snippet.content}</div>
+                    <div class="snippet-tags">${tagsHtml}</div>
+                `;
+
+                return card;
+            }
+
+            updateLastRefreshTime() {
+                const now = new Date();
+                const diffMinutes = Math.floor((now - this.lastUpdateTime) / 1000 / 60);
+                document.getElementById('lastUpdated').textContent = 
+                    `Last updated: ${diffMinutes === 0 ? 'just now' : diffMinutes + ' minutes ago'}`;
+                this.lastUpdateTime = now;
+            }
+        }
+
+        // Global functions for buttons
+        function showFullReport() {
+            alert('Full Report feature - would navigate to detailed analytics dashboard');
+        }
+
+        function provideFeedback() {
+            alert('Feedback feature - would open feedback form or modal');
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new InsightifyDashboard();
+        });
+    </script>
+</body>
+</html>
