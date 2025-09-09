@@ -5,7 +5,8 @@ newsapi-python==0.2.6
 redis
 pandas
 sqlalchemy
-newspaper
+newspaper3K
 feedparser
 lxml_html_clean
 python-dotenv
+pgvector

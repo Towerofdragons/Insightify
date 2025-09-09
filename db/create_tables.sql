@@ -70,4 +70,5 @@ CREATE INDEX idx_articles_keywords ON articles USING GIN (keywords);
 -- ============================================================
 INSERT INTO sources (name, url)
 VALUES ('NewsAPI', 'https://newsapi.org'),
-       ('GDELT', 'https://www.gdeltproject.org');
+       ('GDELT', 'https://www.gdeltproject.org'),
+       ('NewsData', 'https://newsdata.io');

@@ -8,6 +8,11 @@ from datetime import date, timedelta
 from dotenv import load_dotenv
 import os
 
+from db import init_db
+
+init_db() # Create Table if not already present
+
+
 today = date.today()
 yesterday =  today - timedelta(days=1)
 
@@ -100,5 +105,7 @@ def aggregate(concatenated_dataframe):
   df.to_sql("articles", engine, if_exists="append", index=False)
   #df = pd.concat([df_api, df_rss], ignore_index=True).drop_duplicates("url")
  
+
+
 #get_API_articles()
-get_RSS_feeds()
+#get_RSS_feeds()
