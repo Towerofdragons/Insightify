@@ -72,14 +72,9 @@ def get_RSS_feeds():
 
   feed = feedparser.parse("https://www.kenyanews.go.ke/feed/")
 
-  # print (feed)
+  print (feed)
 
   scraped = []
-  config = Configuration()
-
-  config.request_timeout = 10
-  config.requests_params = {'verify': False} # disable SSL checking
-
   for e in feed.entries:
  
       art = Article(e.link, verify=False, # Disable SSL check a
@@ -113,20 +108,28 @@ def get_RSS_feeds():
 
 #print(f"Inserted {len(df)} articles")
 
-def aggregate(concatenated_dataframe):
+def normalize_rss(concatenated_dataframe):
   """
   IDK what this does yet
 
   This puts the feeds together into a news stream
   """
-  
+
   df.to_sql("articles", engine, if_exists="append", index=False)
   #df = pd.concat([df_api, df_rss], ignore_index=True).drop_duplicates("url")
  
+  pass
 
 
-#get_API_articles()
-get_RSS_feeds()
+def normalize_NewsDataAPI():
+   pass
+
+def ingest():
+  """
+  Take in all normalized data and put in postgres
+  """
+  pass
+   
 
 def scrape():
    """
@@ -134,3 +137,9 @@ def scrape():
    """
 
    pass
+
+
+
+#get_API_articles()
+get_RSS_feeds()
+

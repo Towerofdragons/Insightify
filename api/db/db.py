@@ -20,6 +20,13 @@ Base = declarative_base()
 
 load_dotenv()
 
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_URL = os.getenv("DB_URL")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
+
+
 class Source(Base):
     __tablename__ = "sources"
 
@@ -76,33 +83,17 @@ def get_session():
     Creates a session and ensures it’s closed.
     Use with context managers in your code.
     """
+
+    Connection_String = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_URL}:{DB_PORT}/{DB_NAME}"
+
+    engine = create_engine(Connection_String, echo=True)
+
+    # CREATE A SESSION OBJECT TO INITIATE QUERY IN DATABASE
+    SessionLocal = sessionmaker(bind=engine)
+
     session = SessionLocal()
     try:
         yield session
     finally:
         session.close()
 
-
-
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_URL = os.getenv("DB_URL")
-DB_PORT = os.getenv("DB_PORT")
-DB_NAME = os.getenv("DB_NAME")
-
-Connection_String = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_URL}:{DB_PORT}/{DB_NAME}"
-
-
-
-
-engine = create_engine(Connection_String, echo=True)
-
-# CREATE A SESSION OBJECT TO INITIATE QUERY IN DATABASE
-SessionLocal = sessionmaker(bind=engine)
-
-
-session = SessionLocal()
-
-result = session.query(Source).count()
-
-print("Count of sources ", result)
