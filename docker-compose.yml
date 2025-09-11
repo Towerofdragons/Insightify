@@ -14,8 +14,8 @@ services:
         - path: ./api
           action: rebuild
 
-  redis:
-    image: "redis:alpine"
+  # redis:
+  #   image: "redis:alpine"
 
   insightify-database:
     image: ankane/pgvector
@@ -29,7 +29,7 @@ services:
 
     volumes: 
       - pgdata:/var/lib/postgresql/data
-      - ./db/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+      - .api/db/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
 
     ports:
       - 5432:5432

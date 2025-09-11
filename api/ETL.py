@@ -1,17 +1,22 @@
 import requests
+import urllib3
 import ssl, feedparser
-from newspaper import article
+from newspaper import Article
 import lxml
 import pandas as pd
 from datetime import date, timedelta
 
 from dotenv import load_dotenv
+from newspaper.configuration import Configuration
+
 import os
 
-from db import init_db
+from db.db import init_db
 
-init_db() # Create Table if not already present
+#init_db() # Create Table if not already present
 
+# Suppress SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 today = date.today()
 yesterday =  today - timedelta(days=1)
@@ -65,15 +70,30 @@ def get_RSS_feeds():
   if hasattr(ssl, '_create_unverified_context'):
     ssl._create_default_https_context = ssl._create_unverified_context
 
-  rss = feedparser.parse("https://www.kenyanews.go.ke/feed/")
+  feed = feedparser.parse("https://www.kenyanews.go.ke/feed/")
 
-  print (rss)
+  # print (feed)
 
   scraped = []
-  for e in rss.entries[:5]:
-      art = article(e.link)
+  config = Configuration()
+
+  config.request_timeout = 10
+  config.requests_params = {'verify': False} # disable SSL checking
+
+  for e in feed.entries:
+ 
+      art = Article(e.link, verify=False, # Disable SSL check a
+                    request_timeout=30) # Expand Timeout 30 seconds
+
       try:
-          art.download(); art.parse(); art.nlp()
+          # Download and parse the article
+
+          # fetch manually with SSL verification disabled
+          # resp = requests.get(e.link, verify=False, timeout=10)
+          # resp.raise_for_status()
+
+          art.download()
+          art.parse(); #art.nlp()
           scraped.append({
               "title": art.title,
               "description": art.summary,
@@ -84,9 +104,9 @@ def get_RSS_feeds():
           })
       except Exception as exc:
           print("Failed to fetch:", e.link, exc)
-  df_rss = pd.DataFrame(scraped)
+  df_feed = pd.DataFrame(scraped)
 
-  print(df_rss)
+  print(df_feed)
 
 # Combine and dedupe
 #df = pd.concat([df_api, df_rss], ignore_index=True).drop_duplicates("url")
@@ -99,13 +119,18 @@ def aggregate(concatenated_dataframe):
 
   This puts the feeds together into a news stream
   """
-
-  # Insert into Postgres
-  engine = create_engine("postgresql+psycopg2://insightify:password@insightify-database:5432/insightify_db")
+  
   df.to_sql("articles", engine, if_exists="append", index=False)
   #df = pd.concat([df_api, df_rss], ignore_index=True).drop_duplicates("url")
  
 
 
 #get_API_articles()
-#get_RSS_feeds()
+get_RSS_feeds()
+
+def scrape():
+   """
+   Trying out Newspaper module proper!
+   """
+
+   pass
