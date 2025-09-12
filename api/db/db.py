@@ -73,8 +73,12 @@ class Article(Base):
 def init_db():
     """
     Create tables in the database based on the ORM models.
-    Run this once when bootstrapping your app.
+    Runs once when bootstrapping the app.
     """
+
+    Connection_String = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_URL}:{DB_PORT}/{DB_NAME}"
+    engine = create_engine(Connection_String, echo=True)
+
     Base.metadata.create_all(engine)
 
 
