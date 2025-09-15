@@ -15,6 +15,8 @@ from pgvector.sqlalchemy import Vector
 from dotenv import load_dotenv
 import os
 
+from contextlib import contextmanager
+
 # Base class for ORM models
 Base = declarative_base()
 
@@ -81,7 +83,7 @@ def init_db():
 
     Base.metadata.create_all(engine)
 
-
+@contextmanager
 def get_session():
     """
     Creates a session and ensures it’s closed.
@@ -98,6 +100,9 @@ def get_session():
     session = SessionLocal()
     try:
         yield session
+    except:
+        session.rollback()
+        raise
     finally:
         session.close()
 

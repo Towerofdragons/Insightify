@@ -39,6 +39,8 @@ RSS_FEEDS = [
 def get_NewsData_Sources():
   """
   Get News from NewsData API
+
+  Use NewsAPI to get news content
   """
 
   response = requests.get(url)
@@ -50,13 +52,13 @@ def get_NewsData_Sources():
 
     for item in response['results']:
 
-      print (item['title'])
+      print (item)
 
-    else:
-      print("Didn't find anything here.")
+    return response['results']
 
   else:
     print(f"Something went wrong \n {response['code']}")
+    return None
 
 
 
@@ -77,21 +79,22 @@ def get_RSS_articles():
 
      for e in feed.entries:
         try:
-           art = Article(e.link, verify=False, request_timeout=30)
+          #  art = Article(e.link, verify=False, request_timeout=30)
 
-           art.download()
-           art.parse()
+          #  art.download()
+          #  art.parse()
 
-           all_articles.append(
-              {
-                 "title": art.title,
-                 "description": art.text[:300], # First 300 chars
-                  "url": e.link,
-                  "source": feed.feed.get("title","RSS"),
-                  "published_at": getattr(e, "published", None),
-                  "country": "ke"
-              }
-           )
+           print(e)
+
+           all_articles.append({
+              "title": e.get("title"),
+              "description": e.get("summary"),        # or .get("description")
+              "url": e.get("link"),
+              "source": feed.feed.get("title", "RSS"),
+              "published_at": getattr(e, "published", None),
+              "country": "ke"
+          })
+
         except Exception as ex:
            print("Failed to Fetch RSS entry:", e.link, ex)
 
@@ -106,15 +109,19 @@ def normalize_article(raw, source_type="api"):
     """
     Convert raw API/RSS dict into DB-ready dict
     """
+
+    # Add content fields
     if source_type == "api":  # NewsData.io format
+        
+        print(type(raw))
         return {
             "title": raw.get("title"),
             "description": raw.get("description"),
             "url": raw.get("link"),
             "author": raw.get("creator", None),
             "published_at": raw.get("pubDate"),
-            "country": raw.get("country", ["ke"])[0] if raw.get("country") else "ke",
-            "language": raw.get("language"),
+            "country":  "ke",
+            "language": 'en',
             "raw": raw,  # store full payload
             "source_name": "NewsData"
         }
@@ -137,7 +144,7 @@ Load in DB
 """
 
 def insert_articles(articles):
-   with get_session as session:
+   with get_session() as session:
         try:
           for article in articles:
           
@@ -185,19 +192,31 @@ Combine above methods to ingest data
 """
 
 def ingest():
-  #Extract data from available sources
-  API_raw = get_NewsData_Sources()
+  #Extract data from available source
+  # API_raw = get_NewsData_Sources()
+
+  # if API_raw == None:
+  #    print("No api Articles returned")
+  #    return
   RSS_raw = get_RSS_articles()
 
-  #Transform raw into db storable
 
-  API_normalized = [normalize_article(i, "api") for i in API_raw]
+  if RSS_raw == None:
+     print("No RSS Articles returned")
+     return
+  #Transform raw into db storable
+  print(type(RSS_raw))
+  #API_normalized = [normalize_article(i, "api") for i in API_raw]
+  
   RSS_normalized = [normalize_article(i, "rss") for i in RSS_raw]
 
   # COMBINE AND DEDUPLICATE
 
-  all_articles = {i["url"]: i for i in (API_normalized + RSS_normalized)}.values()
+  #all_articles = {i["url"]: i for i in (API_normalized + RSS_normalized)}.values()
 
+  # all_articles = {i["url"]: i for i in (API_normalized)}.values()
+
+  all_articles = {i["url"]: i for i in (RSS_normalized)}.values()
   # Load all articles
 
   insert_articles(all_articles)
