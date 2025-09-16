@@ -39,6 +39,7 @@ CREATE TABLE articles (
     country VARCHAR(5),                   -- optional (ISO country code if available)
     language VARCHAR(5),                  -- optional (ISO language code)
     
+    content TEXT,
     -- Raw payload from the API (for debugging, reproducibility)
     raw JSONB,
 

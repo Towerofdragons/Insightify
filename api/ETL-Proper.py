@@ -1,7 +1,7 @@
 import requests
 import urllib3
 import ssl, feedparser
-from newspaper import Article
+from newspaper import Article as NewspaperArticle
 import pandas as pd
 from datetime import date, timedelta
 from dotenv import load_dotenv
@@ -44,16 +44,9 @@ def get_NewsData_Sources():
   """
 
   response = requests.get(url)
-
- # print(response.text)
   response = response.json()
 
   if response.get('status') == 'success' and response.get('results', None):
-
-    for item in response['results']:
-
-      print (item)
-
     return response['results']
 
   else:
@@ -79,13 +72,6 @@ def get_RSS_articles():
 
      for e in feed.entries:
         try:
-          #  art = Article(e.link, verify=False, request_timeout=30)
-
-          #  art.download()
-          #  art.parse()
-
-           print(e)
-
            all_articles.append({
               "title": e.get("title"),
               "description": e.get("summary"),        # or .get("description")
@@ -98,7 +84,6 @@ def get_RSS_articles():
         except Exception as ex:
            print("Failed to Fetch RSS entry:", e.link, ex)
 
-  print(all_articles)
   return(all_articles)
 
 """
@@ -113,7 +98,6 @@ def normalize_article(raw, source_type="api"):
     # Add content fields
     if source_type == "api":  # NewsData.io format
         
-        print(type(raw))
         return {
             "title": raw.get("title"),
             "description": raw.get("description"),
@@ -123,7 +107,7 @@ def normalize_article(raw, source_type="api"):
             "country":  "ke",
             "language": 'en',
             "raw": raw,  # store full payload
-            "source_name": "NewsData"
+            "source_name": raw.get("source_name", "NewsData")
         }
     elif source_type == "rss":
         return {
@@ -163,10 +147,15 @@ def insert_articles(articles):
             
             #check if current article's url is already in db, else, move to next
             if existing_article:
-              print("This is an existing article")
+              print("This is an existing article. Skipping.")
               continue
           
           
+            content = fetch_full_context(article["url"])
+
+            if content == None:
+               content = "Unable to fetch content"
+
             new_Artcle = Article(  
                 title=article["title"],
                 description=article["description"],
@@ -175,6 +164,7 @@ def insert_articles(articles):
                 published_at=article.get("published_at"),
                 country=article.get("country"),
                 language=article.get("language"),
+                content = content,
                 raw=article["raw"],
                 source=source
 
@@ -187,40 +177,56 @@ def insert_articles(articles):
           print("Insertion failed with this exception", e)
 
 
-"""
-Combine above methods to ingest data
-"""
+def fetch_full_context(url):
+  """
+  Use Newspaper4K to fetch full articles for each db entry
+  """
+
+  try:
+    article = NewspaperArticle(url, request_timeout=20)
+    article.download()
+    article.parse()
+
+    return article.text
+  
+  except Exception as e:
+
+    print(f"Unable to fetch full article for link: {url} \n Error: {e}")
+    return None
+
+
+
 
 def ingest():
-  #Extract data from available source
-  # API_raw = get_NewsData_Sources()
+  """
+  Combine above methods to ingest data
+  """
 
-  # if API_raw == None:
-  #    print("No api Articles returned")
-  #    return
+  #Extract data from available sources
+  API_raw = get_NewsData_Sources()
+  if API_raw == None:
+     print("No api Articles returned")
+     return
+  
   RSS_raw = get_RSS_articles()
-
-
   if RSS_raw == None:
      print("No RSS Articles returned")
      return
-  #Transform raw into db storable
-  print(type(RSS_raw))
-  #API_normalized = [normalize_article(i, "api") for i in API_raw]
   
+  #Transform raw into db storable
+  API_normalized = [normalize_article(i, "api") for i in API_raw]
   RSS_normalized = [normalize_article(i, "rss") for i in RSS_raw]
 
   # COMBINE AND DEDUPLICATE
 
-  #all_articles = {i["url"]: i for i in (API_normalized + RSS_normalized)}.values()
+  all_articles = {i["url"]: i for i in (API_normalized + RSS_normalized)}.values()
 
-  # all_articles = {i["url"]: i for i in (API_normalized)}.values()
-
-  all_articles = {i["url"]: i for i in (RSS_normalized)}.values()
   # Load all articles
 
   insert_articles(all_articles)
-  print(f"Inserted {len(all_articles)} articles.")
+  print(f"Collected {len(all_articles)} articles.")
+
+
 
 
 if __name__ == "__main__":

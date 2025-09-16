@@ -53,6 +53,7 @@ class Article(Base):
     published_at = Column(TIMESTAMP(timezone=True))
     country = Column(String(5))
     language = Column(String(5))
+    content = Column(Text)
 
     raw = Column(JSONB)
 
