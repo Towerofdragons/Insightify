@@ -10,3 +10,6 @@ feedparser
 lxml_html_clean
 python-dotenv
 pgvector
+hf_xet
+sentence-transformers
+pipeline
