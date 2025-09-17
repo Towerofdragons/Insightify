@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import os
 
 from db.db import init_db, get_session, Source, Article
-
+from analyze import get_embedding
 
 # Surpress SSL Warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -33,6 +33,8 @@ url = ('https://newsdata.io/api/1/latest?'
 RSS_FEEDS = [
    "https://www.standardmedia.co.ke/rss/kenya.php",
    "https://www.kenyanews.go.ke/feed/",
+   "https://www.kenyans.co.ke/feeds/news?_wrapper_format=html",
+   "https://www.capitalfm.co.ke/news/feed/",
 ]
 
 
@@ -123,11 +125,12 @@ def normalize_article(raw, source_type="api"):
         }
 
 
-"""
-Load in DB
-"""
-
 def insert_articles(articles):
+   """
+    Load soley article data in DB
+    Data available in DB later for Postprocessing
+    """
+   
    with get_session() as session:
         try:
           for article in articles:
@@ -139,7 +142,7 @@ def insert_articles(articles):
             if not source:
               source = Source(name=article["source_name"])
               session.add(source)
-              session.flush()  # assign ID
+              session.flush()  # assign new source ID
 
 
             existing_article = session.query(Article).filter_by(
@@ -154,7 +157,10 @@ def insert_articles(articles):
             content = fetch_full_context(article["url"])
 
             if content == None:
-               content = "Unable to fetch content"
+               content = None
+
+
+            text = (article["title"] or "") + " " + (article["description"] or "") + " " + (content or "")
 
             new_Artcle = Article(  
                 title=article["title"],
@@ -167,7 +173,6 @@ def insert_articles(articles):
                 content = content,
                 raw=article["raw"],
                 source=source
-
             )
 
             session.add(new_Artcle)
@@ -199,7 +204,7 @@ def fetch_full_context(url):
 
 def ingest():
   """
-  Combine above methods to ingest data
+  Combine above methods to ingest data.
   """
 
   #Extract data from available sources
