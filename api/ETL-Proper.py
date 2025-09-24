@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import os
 
 from db.db import init_db, get_session, Source, Article
-from analyze import get_embedding
+from analyze import get_embeddings, update_sentiments
 
 # Surpress SSL Warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -236,3 +236,5 @@ def ingest():
 
 if __name__ == "__main__":
   ingest()
+  get_embeddings() 
+  update_sentiments()

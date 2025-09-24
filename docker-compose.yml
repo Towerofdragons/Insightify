@@ -4,36 +4,37 @@ services:
   insightify-app:
     build:
       context: ./api
+    container_name: insightify_app
     depends_on:
       - insightify-database
     ports:
-      - 8000:5000
-
+      - "8000:5000"
+    environment:
+      - HF_HOME=/models   # ensures model cache path inside container matches Dockerfile
+    volumes:
+      - ./api:/api                # live code mounting for dev
+      - hf_cache:/models          # Hugging Face cache (persistent)
+      - torch_cache:/root/.cache/torch  # Torch cache
     develop:
       watch:
         - path: ./api
           action: rebuild
 
-  # redis:
-  #   image: "redis:alpine"
-
   insightify-database:
     image: ankane/pgvector
-
+    container_name: insightify_db
     restart: unless-stopped
-
     environment: 
       - POSTGRES_USER=insightify
-      - POSTGRES_PASSWORD=password # to change 
+      - POSTGRES_PASSWORD=password   # change in production
       - POSTGRES_DB=insightify_db
-
     volumes: 
       - pgdata:/var/lib/postgresql/data
-      - .api/db/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
-
+      - ./api/db/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
     ports:
-      - 5432:5432
+      - "5432:5432"
 
 volumes:
   pgdata:
-  #database:
+  hf_cache:
+  torch_cache:

@@ -20,13 +20,17 @@ from contextlib import contextmanager
 # Base class for ORM models
 Base = declarative_base()
 
-load_dotenv()
 
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_URL = os.getenv("DB_URL")
-DB_PORT = os.getenv("DB_PORT")
-DB_NAME = os.getenv("DB_NAME")
+
+class Cluster(Base):
+    __tablename__ = "clusters"
+    id = Column(BigInteger, primary_key=True)
+    label = Column(Text)      # human-readable cluster name
+    summary = Column(Text)    # 3-line summary
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    articles = relationship("Article", back_populates="cluster")
 
 
 class Source(Base):
@@ -62,10 +66,18 @@ class Article(Base):
     sentiment = Column(Numeric)
     embedding = Column(Vector(384))
 
+    cluster_id = Column(BigInteger, ForeignKey("clusters.id"))
+    cluster_confidence = Column(Numeric)
+
+   
+
     inserted_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
     # ORM: back reference
     source = relationship("Source", back_populates="articles")
+
+   
+    cluster = relationship("Cluster", back_populates="articles")
 
 
 """
@@ -73,13 +85,40 @@ class Article(Base):
 
 """
 
+
+def get_connection_string():
+    """
+    Constructs connection string.
+    Fails if env variable not set
+    """
+
+    load_dotenv()
+
+    DB_USER = os.getenv("DB_USER")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    DB_URL = os.getenv("DB_URL")
+    DB_PORT = os.getenv("DB_PORT")
+    DB_NAME = os.getenv("DB_NAME")
+
+
+    if DB_USER and DB_PASSWORD and DB_URL and DB_PORT and DB_NAME:
+        Connection_String = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_URL}:{DB_PORT}/{DB_NAME}"
+        return Connection_String
+
+    else:
+        print("Please check if all your environment variables have been set!")
+        return None
+
 def init_db():
     """
     Create tables in the database based on the ORM models.
     Runs once when bootstrapping the app.
     """
 
-    Connection_String = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_URL}:{DB_PORT}/{DB_NAME}"
+    Connection_String = get_connection_string()
+    if Connection_String == None:
+        print("Cannot Initiate database.")
+        return
     engine = create_engine(Connection_String, echo=True)
 
     Base.metadata.create_all(engine)
@@ -91,7 +130,10 @@ def get_session():
     Use with context managers in your code.
     """
 
-    Connection_String = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_URL}:{DB_PORT}/{DB_NAME}"
+    Connection_String = get_connection_string()
+    if Connection_String == None:
+        print("Cannot Initiate database session.")
+        return
 
     engine = create_engine(Connection_String, echo=True)
 

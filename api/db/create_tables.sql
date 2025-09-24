@@ -20,6 +20,24 @@ CREATE TABLE sources (
 );
 
 
+-- ============================================================
+-- Clusters Table
+-- ============================================================
+-- Stores metadata for groups of articles discovered by HDBSCAN
+CREATE TABLE clusters (
+    id BIGSERIAL PRIMARY KEY,
+    label TEXT,                          -- human-readable name ("Kenya Protests")
+    summary TEXT,                        -- 3-line AI-generated summary
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- -- Map articles to clusters (many-to-one)
+-- ALTER TABLE articles
+-- ADD COLUMN cluster_id BIGINT REFERENCES clusters(id) ON DELETE SET NULL,
+-- ADD COLUMN cluster_confidence NUMERIC;    -- HDBSCAN membership strength
+
+
 CREATE EXTENSION vector;
 
 -- ============================================================
@@ -49,8 +67,13 @@ CREATE TABLE articles (
     sentiment NUMERIC,                    -- -1.0 to 1.0 sentiment score
     embedding VECTOR(384),                -- (if using pgvector for NLP later)
 
+    cluster_id BIGINT REFERENCES clusters(id) ON DELETE SET NULL,
+    cluster_confidence NUMERIC;    -- HDBSCAN membership strength
+
     inserted_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+
 
 -- ============================================================
 -- Helpful Indexes

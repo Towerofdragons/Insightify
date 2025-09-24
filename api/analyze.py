@@ -1,26 +1,82 @@
 """
-Perform Sentiment analysis with a Hugging face model
+Perform Sentiment analysis and generate headings with a Hugging face model
 """
 
-from transformers import pipeline
+from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 from sentence_transformers import SentenceTransformer
 from db.db import get_session, Article
+import os
+import logging
 
+# Create a logger 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 # Load the Sentiment analyzer from Huggingface
 # Using cardiffnlp/twitter-roberta-base-sentiment or prosusai/finbert
 
-pipe = pipeline(
-  "sentiment-analysis",
-  model="cardiffnlp/twitter-roberta-base-sentiment"
-)
-embedder = SentenceTransformer("all-MiniLM-L6-v2")
+sentiment_model_name = "models--cardiffnlp-twitter-roberta-base-sentiment"
+
+embedding_model_name = "models--sentence-transformers-all-MiniLM-L6-v2"
+
+mounted_container_path = "/models/hub"
+
+# Resolve local paths
+sentiment_model_path = os.path.join(mounted_container_path, sentiment_model_name)
+embedding_model_path = os.path.join(mounted_container_path, embedding_model_name)
+
 
 LABEL_MAP = {
     "LABEL_0": "NEGATIVE",
     "LABEL_1": "NEUTRAL",
     "LABEL_2": "POSITIVE"
 }
+
+
+def load_sentiment_pipeline(model_path: str):
+    """
+    Load sentiment models from volume
+    """
+
+    if not os.path.exists(model_path):
+        logger.error(f"Sentiment model path not found: {model_path}")
+        raise FileNotFoundError(
+            f"Sentiment model not found at {model_path}. "
+            f"Ensure it’s mounted correctly into the container."
+        )
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
+        model = AutoModelForSequenceClassification.from_pretrained(model_path)
+        return pipeline("sentiment-analysis", 
+                        model=model, 
+                        tokenizer=tokenizer)
+    except Exception as e:
+        logger.exception("Failed to load sentiment analysis model")
+        raise e
+
+def load_embedder(model_path: str):
+    """
+    Load embedding models from volume
+    """
+
+    if not os.path.exists(model_path):
+        logger.error(f"Embedding model path not found: {model_path}")
+        raise FileNotFoundError(
+            f"Embedding model not found at {model_path}. "
+            f"Ensure it’s mounted correctly into the container."
+        )
+    try:
+        return SentenceTransformer(model_path)
+    except Exception as e:
+        logger.exception("Failed to load embedding model")
+        raise e
+
+
+# Attempt to load the models from volumes
+pipe = load_sentiment_pipeline(sentiment_model_path)
+embedder = load_embedder(embedding_model_path)
+
+logger.info("✅ Models loaded successfully.")
 
 
 def perform_sentiment_analysis(text: str): # Limit anything going into the model to strings
@@ -112,6 +168,7 @@ def get_embeddings():
         print(f"Error processing embedding: \n {e}")
 
       session.commit()
+
 
 
 if __name__ == "__main__":
