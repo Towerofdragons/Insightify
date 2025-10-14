@@ -13,3 +13,4 @@ pgvector
 hf_xet
 sentence-transformers
 pipeline
+protobuf

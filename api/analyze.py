@@ -7,6 +7,8 @@ from sentence_transformers import SentenceTransformer
 from db.db import get_session, Article
 import os
 import logging
+from dotenv import load_dotenv
+import glob
 
 # Create a logger 
 logger = logging.getLogger(__name__)
@@ -15,11 +17,18 @@ logging.basicConfig(level=logging.INFO)
 # Load the Sentiment analyzer from Huggingface
 # Using cardiffnlp/twitter-roberta-base-sentiment or prosusai/finbert
 
-sentiment_model_name = "models--cardiffnlp-twitter-roberta-base-sentiment"
 
-embedding_model_name = "models--sentence-transformers-all-MiniLM-L6-v2"
+load_dotenv()  # Loads .env file
 
-mounted_container_path = "/models/hub"
+DEBUG_MODE = os.getenv("DEBUG_MODE")
+
+sentiment_model_name = "models--cardiffnlp--twitter-roberta-base-sentiment"
+
+embedding_model_name = "models--sentence-transformers--all-MiniLM-L6-v2"
+if DEBUG_MODE == "false":
+  mounted_container_path = "/models/hub"
+else:
+  mounted_container_path = "C:\\Users\Z.BOOK\.cache\huggingface\hub"
 
 # Resolve local paths
 sentiment_model_path = os.path.join(mounted_container_path, sentiment_model_name)
@@ -33,20 +42,39 @@ LABEL_MAP = {
 }
 
 
+def resolve_snapshot_path(base_path: str):
+    """Resolve the actual snapshot directory under the Hugging Face cache layout."""
+    snapshot_dirs = glob.glob(os.path.join(base_path, "snapshots", "*"))
+    if snapshot_dirs:
+        return snapshot_dirs[0]  # assume first snapshot
+    
+    print("\n\n No snapshots found")
+    return base_path  # fallback if structure differs
+
+
 def load_sentiment_pipeline(model_path: str):
     """
     Load sentiment models from volume
     """
 
-    if not os.path.exists(model_path):
+    resolved_path = resolve_snapshot_path(model_path)
+
+    print("❗ Sentiment Resolved path:", resolved_path)
+    print("Contents:", os.listdir(resolved_path) if os.path.exists(resolved_path) else "Path does not exist")
+
+
+    if not os.path.exists(resolved_path):
         logger.error(f"Sentiment model path not found: {model_path}")
         raise FileNotFoundError(
-            f"Sentiment model not found at {model_path}. "
+            f"Sentiment model not found at {resolved_path}. "
             f"Ensure it’s mounted correctly into the container."
         )
     try:
-        tokenizer = AutoTokenizer.from_pretrained(model_path)
-        model = AutoModelForSequenceClassification.from_pretrained(model_path)
+        tokenizer = AutoTokenizer.from_pretrained(resolved_path)
+        model = AutoModelForSequenceClassification.from_pretrained(resolved_path)
+
+        tokenizer.save_pretrained("models/sentiment_model")
+        model.save_pretrained("models/sentiment_model")
         return pipeline("sentiment-analysis", 
                         model=model, 
                         tokenizer=tokenizer)
@@ -59,14 +87,20 @@ def load_embedder(model_path: str):
     Load embedding models from volume
     """
 
-    if not os.path.exists(model_path):
-        logger.error(f"Embedding model path not found: {model_path}")
+    resolved_path = resolve_snapshot_path(model_path)
+
+    print("❗ Embedder Resolved path:", resolved_path)
+    print("Contents:", os.listdir(resolved_path) if os.path.exists(resolved_path) else "Path does not exist")
+
+    if not os.path.exists(resolved_path):
+        logger.error(f"Embedding model path not found: {resolved_path}")
         raise FileNotFoundError(
-            f"Embedding model not found at {model_path}. "
+            f"Embedding model not found at {resolved_path}. "
             f"Ensure it’s mounted correctly into the container."
         )
     try:
-        return SentenceTransformer(model_path)
+        embedder = SentenceTransformer(resolved_path)
+        return embedder
     except Exception as e:
         logger.exception("Failed to load embedding model")
         raise e
@@ -109,11 +143,12 @@ def update_sentiments():
   Write score to respective db row
   """
 
+  print("Update Sentiments")
   with get_session() as session:
     articles = session.query(Article).filter(Article.sentiment==None).all()
 
     if not articles:
-      print("No articles currently in storage OR missing sentiments")
+      print("\nNo articles currently in storage OR missing sentiments\n")
       return None
 
 
@@ -147,7 +182,7 @@ def get_embeddings():
     articles = session.query(Article).filter(Article.embedding==None).all()
 
     if not articles:
-      print("No articles currently in storage OR missing embedding")
+      print("\nNo articles currently in storage OR missing embedding\n")
       return None
 
 

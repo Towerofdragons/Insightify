@@ -1,2 +1,4 @@
 .env
 Insightify-log.txt
+models/
+/api/db/__pycache__
