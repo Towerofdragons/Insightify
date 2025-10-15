@@ -14,3 +14,4 @@ hf_xet
 sentence-transformers
 pipeline
 protobuf
+umap
